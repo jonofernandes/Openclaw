@@ -755,6 +755,14 @@ app.post("/setup/api/run", requireSetupAuth, async (req, res) => {
       clawArgs(["config", "set", "--json", "gateway.trustedProxies", JSON.stringify(["127.0.0.1"]) ]),
     );
 
+    // Allow the Control UI to connect from any origin. The wrapper already handles
+    // authentication (Basic auth + gateway token injection), so origin restrictions
+    // at the gateway level are unnecessary and break Railway custom domains.
+    await runCmd(
+      OPENCLAW_NODE,
+      clawArgs(["config", "set", "--json", "gateway.controlUi.allowedOrigins", JSON.stringify(["*"]) ]),
+    );
+
     // Optional: configure a custom OpenAI-compatible provider (base URL) for advanced users.
     if (payload.customProviderId?.trim() && payload.customProviderBaseUrl?.trim()) {
       const providerId = payload.customProviderId.trim();
@@ -1440,6 +1448,10 @@ const server = app.listen(PORT, "0.0.0.0", async () => {
       await runCmd(OPENCLAW_NODE, clawArgs(["config", "set", "gateway.auth.mode", "token"]));
       await runCmd(OPENCLAW_NODE, clawArgs(["config", "set", "gateway.auth.token", OPENCLAW_GATEWAY_TOKEN]));
       await runCmd(OPENCLAW_NODE, clawArgs(["config", "set", "gateway.remote.token", OPENCLAW_GATEWAY_TOKEN]));
+      await runCmd(
+        OPENCLAW_NODE,
+        clawArgs(["config", "set", "--json", "gateway.controlUi.allowedOrigins", JSON.stringify(["*"]) ]),
+      );
       console.log("[wrapper] gateway tokens synced");
     } catch (err) {
       console.warn(`[wrapper] failed to sync gateway tokens: ${String(err)}`);
